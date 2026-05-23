@@ -1,0 +1,14 @@
+{
+  "01": {
+    "name": "gaurav shukla",
+    "standard": "12",
+    "description": "he is a good boy",
+    "marks": 67.0
+  },
+  "02": {
+    "name": "Anand nishad",
+    "standard": "11",
+    "description": "smart boy",
+    "marks": 88.0
+  }
+}

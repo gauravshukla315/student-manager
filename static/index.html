@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c28;
+      --border: #2a2a3d;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --accent3: #43e97b;
+      --text: #e8e8f0;
+      --muted: #7070a0;
+      --card-glow: rgba(108,99,255,0.12);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glow orbs */
+    body::after {
+      content: '';
+      position: fixed;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(108,99,255,0.15), transparent 70%);
+      top: -200px; left: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb2 {
+      position: fixed;
+      width: 500px; height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,101,132,0.1), transparent 70%);
+      bottom: -150px; right: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* HEADER */
+    header {
+      padding: 40px 0 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 40px;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 24px rgba(108,99,255,0.4);
+    }
+
+    .logo-text h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 24px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* TOAST */
+    #toast {
+      position: fixed;
+      top: 24px; right: 24px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 9999;
+      transform: translateX(120%);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      max-width: 320px;
+    }
+    #toast.show { transform: translateX(0); }
+    #toast.success { background: rgba(67,233,123,0.15); border: 1px solid var(--accent3); color: var(--accent3); }
+    #toast.error   { background: rgba(255,101,132,0.15); border: 1px solid var(--accent2); color: var(--accent2); }
+    #toast.info    { background: rgba(108,99,255,0.15);  border: 1px solid var(--accent);  color: var(--accent); }
+
+    /* LAYOUT */
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 820px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* CARD */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 0 40px var(--card-glow);
+      animation: fadeUp 0.5s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title span {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      display: inline-block;
+    }
+
+    /* FORM */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+
+    input, textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      width: 100%;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* marks color indicator */
+    .marks-wrapper { position: relative; }
+    .marks-badge {
+      position: absolute;
+      right: 12px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      pointer-events: none;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-top: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #8b7fff);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(108,99,255,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(108,99,255,0.45); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .btn-outline:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* MODE TOGGLE */
+    .mode-tabs {
+      display: flex;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+
+    .mode-tab {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-tab.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(108,99,255,0.4);
+    }
+
+    /* SEARCH */
+    .search-bar {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .search-bar input {
+      padding-left: 40px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 15px;
+      pointer-events: none;
+    }
+
+    /* TABLE */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    thead {
+      background: var(--surface2);
+    }
+
+    th {
+      padding: 13px 16px;
+      text-align: left;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      white-space: nowrap;
+      font-weight: 600;
+    }
+
+    td {
+      padding: 13px 16px;
+      border-top: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr { transition: background 0.15s; }
+    tr:hover td { background: rgba(108,99,255,0.05); }
+
+    .student-name {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .student-id {
+      font-family: monospace;
+      font-size: 12px;
+      background: var(--surface2);
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+
+    .std-badge {
+      background: rgba(108,99,255,0.12);
+      color: var(--accent);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid rgba(108,99,255,0.2);
+    }
+
+    .marks-pill {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .marks-high  { background: rgba(67,233,123,0.12); color: var(--accent3); border: 1px solid rgba(67,233,123,0.25); }
+    .marks-mid   { background: rgba(255,193,7,0.12);  color: #ffc107;        border: 1px solid rgba(255,193,7,0.25); }
+    .marks-low   { background: rgba(255,101,132,0.12);color: var(--accent2);  border: 1px solid rgba(255,101,132,0.25); }
+
+    .actions { display: flex; gap: 8px; }
+
+    .btn-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { transform: scale(1.1); }
+    .btn-edit:hover  { background: rgba(108,99,255,0.2); border-color: var(--accent); }
+    .btn-delete:hover { background: rgba(255,101,132,0.2); border-color: var(--accent2); }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state div { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      width: 460px;
+      max-width: 95vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .modal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted);
+      transition: all 0.2s;
+    }
+    .modal-close:hover { color: var(--accent2); border-color: var(--accent2); }
+
+    .desc-cell {
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="orb2"></div>
+
+<div id="toast"></div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Student</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Student Name</label>
+        <input type="text" id="edit_name" placeholder="Full name"/>
+      </div>
+      <div class="form-group">
+        <label>Standard</label>
+        <input type="text" id="edit_standard" placeholder="e.g. 10th"/>
+      </div>
+      <div class="form-group">
+        <label>Marks <span style="color:var(--muted);font-size:10px">(out of 100)</span></label>
+        <div class="marks-wrapper">
+          <input type="number" id="edit_marks" placeholder="0–100" min="0" max="100" oninput="updateMarksBadge('edit_marks','edit_marks_badge')"/>
+          <span class="marks-badge" id="edit_marks_badge"></span>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Description</label>
+        <textarea id="edit_description" placeholder="Notes about the student..."></textarea>
+      </div>
+    </div>
+    <input type="hidden" id="edit_id"/>
+    <button class="btn btn-primary" onclick="submitEdit()">💾 Save Changes</button>
+    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">🎓</div>
+        <div class="logo-text">
+          <h1>Student Manager</h1>
+          <p>Track, manage and monitor student records</p>
+        </div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat">
+          <div class="stat-num" id="stat-total">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="stat-avg" style="color:var(--accent3)">—</div>
+          <div class="stat-label">Avg Marks</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" id="stat-top" style="color:var(--accent2)">—</div>
+          <div class="stat-label">Top Score</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="layout">
+
+    <!-- LEFT: FORM -->
+    <div>
+      <div class="card">
+        <div class="mode-tabs">
+          <button class="mode-tab active" id="tab-add" onclick="setMode('add')">➕ Add Student</button>
+          <button class="mode-tab" id="tab-remove" onclick="setMode('remove')">🗑️ Remove</button>
+        </div>
+
+        <!-- ADD FORM -->
+        <div id="form-add">
+          <div class="card-title"><span></span> New Student Record</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Student ID</label>
+              <input type="text" id="add_id" placeholder="e.g. S001"/>
+            </div>
+            <div class="form-group">
+              <label>Student Name</label>
+              <input type="text" id="add_name" placeholder="Full name"/>
+            </div>
+            <div class="form-group">
+              <label>Standard</label>
+              <input type="text" id="add_standard" placeholder="e.g. 10th"/>
+            </div>
+            <div class="form-group">
+              <label>Marks <span style="color:var(--muted);font-size:10px">(out of 100)</span></label>
+              <div class="marks-wrapper">
+                <input type="number" id="add_marks" placeholder="0–100" min="0" max="100" oninput="updateMarksBadge('add_marks','add_marks_badge')"/>
+                <span class="marks-badge" id="add_marks_badge"></span>
+              </div>
+            </div>
+            <div class="form-group full">
+              <label>Description</label>
+              <textarea id="add_description" placeholder="Notes about the student..."></textarea>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addStudent()">🚀 Add Student</button>
+        </div>
+
+        <!-- REMOVE FORM -->
+        <div id="form-remove" style="display:none">
+          <div class="card-title"><span style="background:var(--accent2);box-shadow:0 0 8px var(--accent2)"></span> Remove Student</div>
+          <div class="form-group" style="margin-bottom:14px">
+            <label>Student ID to Remove</label>
+            <input type="text" id="remove_id" placeholder="Enter exact Student ID"/>
+          </div>
+          <button class="btn btn-primary" style="background:linear-gradient(135deg,#ff6584,#ff4d6d);box-shadow:0 4px 20px rgba(255,101,132,0.35)" onclick="removeStudent()">🗑️ Remove Student</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: TABLE -->
+    <div>
+      <div class="card" style="animation-delay:0.1s">
+        <div class="card-title"><span></span> All Students</div>
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search by name, ID or standard..." oninput="filterStudents()"/>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Standard</th>
+                <th>Marks</th>
+                <th>Description</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentTable">
+              <tr><td colspan="6"><div class="empty-state"><div>📭</div><p>No students yet. Add one!</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let allStudents = [];
+
+  // ---- Toast ----
+  function toast(msg, type='info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `show ${type}`;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.className = '', 3000);
+  }
+
+  // ---- Mode toggle ----
+  function setMode(mode) {
+    document.getElementById('form-add').style.display    = mode === 'add'    ? '' : 'none';
+    document.getElementById('form-remove').style.display = mode === 'remove' ? '' : 'none';
+    document.getElementById('tab-add').classList.toggle('active', mode === 'add');
+    document.getElementById('tab-remove').classList.toggle('active', mode === 'remove');
+  }
+
+  // ---- Marks badge ----
+  function updateMarksBadge(inputId, badgeId) {
+    const val = parseFloat(document.getElementById(inputId).value);
+    const badge = document.getElementById(badgeId);
+    if (isNaN(val)) { badge.textContent = ''; return; }
+    if (val >= 75) { badge.textContent = '🟢'; }
+    else if (val >= 50) { badge.textContent = '🟡'; }
+    else { badge.textContent = '🔴'; }
+  }
+
+  // ---- Marks pill class ----
+  function marksPill(marks) {
+    const cls = marks >= 75 ? 'marks-high' : marks >= 50 ? 'marks-mid' : 'marks-low';
+    return `<span class="marks-pill ${cls}">${marks}</span>`;
+  }
+
+  // ---- Render table ----
+  function renderTable(students) {
+    const tbody = document.getElementById('studentTable');
+    if (!students.length) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div>📭</div><p>No students found.</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = students.map(s => `
+      <tr>
+        <td><span class="student-id">${s.id}</span></td>
+        <td><span class="student-name">${s.name}</span></td>
+        <td><span class="std-badge">${s.standard}</span></td>
+        <td>${marksPill(s.marks ?? 0)}</td>
+        <td><div class="desc-cell" title="${s.description || ''}">${s.description || '—'}</div></td>
+        <td>
+          <div class="actions">
+            <button class="btn-icon btn-edit" title="Edit" onclick='openEdit(${JSON.stringify(s)})'>✏️</button>
+            <button class="btn-icon btn-delete" title="Delete" onclick="quickDelete('${s.id}')">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ---- Update stats ----
+  function updateStats(students) {
+    document.getElementById('stat-total').textContent = students.length;
+    if (!students.length) {
+      document.getElementById('stat-avg').textContent = '—';
+      document.getElementById('stat-top').textContent = '—';
+      return;
+    }
+    const marks = students.map(s => s.marks ?? 0);
+    const avg = (marks.reduce((a,b) => a+b, 0) / marks.length).toFixed(1);
+    const top = Math.max(...marks);
+    document.getElementById('stat-avg').textContent = avg;
+    document.getElementById('stat-top').textContent = top;
+  }
+
+  // ---- Load all ----
+  async function loadStudents() {
+    const res = await fetch('/students');
+    const data = await res.json();
+    allStudents = data.students;
+    renderTable(allStudents);
+    updateStats(allStudents);
+  }
+
+  // ---- Filter ----
+  function filterStudents() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = allStudents.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      s.id.toLowerCase().includes(q) ||
+      s.standard.toLowerCase().includes(q)
+    );
+    renderTable(filtered);
+  }
+
+  // ---- Add student ----
+  async function addStudent() {
+    const id   = document.getElementById('add_id').value.trim();
+    const name = document.getElementById('add_name').value.trim();
+    const std  = document.getElementById('add_standard').value.trim();
+    const marks = parseFloat(document.getElementById('add_marks').value) || 0;
+    const desc = document.getElementById('add_description').value.trim();
+
+    if (!id || !name || !std) { toast('Please fill ID, Name and Standard!', 'error'); return; }
+
+    const res = await fetch(`/students/${id}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, standard: std, description: desc, marks })
+    });
+
+    if (res.ok) {
+      toast(`✅ ${name} added successfully!`, 'success');
+      ['add_id','add_name','add_standard','add_marks','add_description'].forEach(x => document.getElementById(x).value = '');
+      document.getElementById('add_marks_badge').textContent = '';
+      loadStudents();
+    } else {
+      const err = await res.json();
+      toast(`❌ ${err.detail}`, 'error');
+    }
+  }
+
+  // ---- Remove student ----
+  async function removeStudent() {
+    const id = document.getElementById('remove_id').value.trim();
+    if (!id) { toast('Enter a Student ID!', 'error'); return; }
+
+    const res = await fetch(`/students/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      toast(`🗑️ Student ${id} removed.`, 'info');
+      document.getElementById('remove_id').value = '';
+      loadStudents();
+    } else {
+      toast('❌ Student not found!', 'error');
+    }
+  }
+
+  // ---- Quick delete from table ----
+  async function quickDelete(id) {
+    if (!confirm(`Remove student ${id}?`)) return;
+    const res = await fetch(`/students/${id}`, { method: 'DELETE' });
+    if (res.ok) { toast(`🗑️ Removed ${id}`, 'info'); loadStudents(); }
+    else toast('❌ Error removing student', 'error');
+  }
+
+  // ---- Edit modal ----
+  function openEdit(student) {
+    document.getElementById('edit_id').value          = student.id;
+    document.getElementById('edit_name').value        = student.name;
+    document.getElementById('edit_standard').value    = student.standard;
+    document.getElementById('edit_marks').value       = student.marks ?? 0;
+    document.getElementById('edit_description').value = student.description || '';
+    updateMarksBadge('edit_marks','edit_marks_badge');
+    document.getElementById('editModal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('editModal').classList.remove('open');
+  }
+
+  async function submitEdit() {
+    const id   = document.getElementById('edit_id').value;
+    const name = document.getElementById('edit_name').value.trim();
+    const std  = document.getElementById('edit_standard').value.trim();
+    const marks = parseFloat(document.getElementById('edit_marks').value) || 0;
+    const desc = document.getElementById('edit_description').value.trim();
+
+    const res = await fetch(`/students/${id}`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, standard: std, description: desc, marks })
+    });
+
+    if (res.ok) {
+      toast(`✅ ${name} updated!`, 'success');
+      closeModal();
+      loadStudents();
+    } else {
+      toast('❌ Update failed', 'error');
+    }
+  }
+
+  // close modal on overlay click
+  document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ---- Init ----
+  loadStudents();
+</script>
+</body>
+</html>
