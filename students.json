@@ -22,5 +22,17 @@
     "standard": "14",
     "description": "very good boy",
     "marks": 88.0
+  },
+  "05": {
+    "name": "aman nishad",
+    "standard": "10th",
+    "description": "he is a very clever boy",
+    "marks": 56.0
+  },
+  "09": {
+    "name": "shrehans rai",
+    "standard": "14th",
+    "description": "he is very average",
+    "marks": 86.0
   }
 }

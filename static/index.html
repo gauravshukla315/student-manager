@@ -849,5 +849,401 @@
   // ---- Init ----
   loadStudents();
 </script>
+
+<!-- ========== CHATBOT ========== -->
+<style>
+  /* Floating button */
+  .chat-fab {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #8b7fff);
+    box-shadow: 0 4px 24px rgba(108,99,255,0.5);
+    border: none;
+    cursor: pointer;
+    font-size: 26px;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2000;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .chat-fab:hover { transform: scale(1.1); box-shadow: 0 8px 32px rgba(108,99,255,0.6); }
+
+  /* Chat panel */
+  .chat-panel {
+    position: fixed;
+    bottom: 100px; right: 28px;
+    width: 320px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    z-index: 1999;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    transform: scale(0.8) translateY(20px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    transform-origin: bottom right;
+  }
+  .chat-panel.open {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* Header */
+  .chat-header {
+    background: linear-gradient(135deg, var(--accent), #8b7fff);
+    padding: 16px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .chat-header-left { display: flex; align-items: center; gap: 10px; }
+  .chat-header-left span { font-size: 22px; }
+  .chat-header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: #fff;
+  }
+  .chat-header-sub { font-size: 11px; color: rgba(255,255,255,0.7); }
+  .chat-close {
+    background: rgba(255,255,255,0.15);
+    border: none; border-radius: 8px;
+    width: 28px; height: 28px;
+    color: #fff; font-size: 14px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .chat-close:hover { background: rgba(255,255,255,0.25); }
+
+  /* Messages */
+  .chat-messages {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex; flex-direction: column;
+    gap: 10px;
+    max-height: 320px;
+    min-height: 200px;
+  }
+
+  .chat-bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 90%;
+    animation: bubbleIn 0.2s ease;
+  }
+  @keyframes bubbleIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .chat-bubble.bot {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .chat-bubble.user {
+    background: linear-gradient(135deg, var(--accent), #8b7fff);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-bubble.success {
+    background: rgba(67,233,123,0.1);
+    border: 1px solid rgba(67,233,123,0.25);
+    color: var(--accent3);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    font-size: 12px;
+  }
+
+  /* Field indicator */
+  .field-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .tag-name     { background: rgba(108,99,255,0.2); color: var(--accent); }
+  .tag-id       { background: rgba(255,193,7,0.2);  color: #ffc107; }
+  .tag-standard { background: rgba(67,233,123,0.2); color: var(--accent3); }
+  .tag-marks    { background: rgba(255,101,132,0.2);color: var(--accent2); }
+  .tag-desc     { background: rgba(100,180,255,0.2);color: #64b4ff; }
+
+  /* Input area */
+  .chat-input-area {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .chat-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+  .chat-send {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #8b7fff);
+    border: none; border-radius: 10px;
+    color: #fff; font-size: 16px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .chat-send:hover { transform: scale(1.1); }
+
+  /* Filled indicator on fab */
+  .chat-fab .fab-badge {
+    position: absolute;
+    top: -2px; right: -2px;
+    width: 16px; height: 16px;
+    background: var(--accent3);
+    border-radius: 50%;
+    font-size: 9px;
+    display: none;
+    align-items: center; justify-content: center;
+    color: #000; font-weight: 700;
+  }
+</style>
+
+<!-- FAB Button -->
+<button class="chat-fab" onclick="toggleChat()" title="AI Form Assistant">
+  🤖
+  <span class="fab-badge" id="fabBadge"></span>
+</button>
+
+<!-- Chat Panel -->
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <span>🤖</span>
+      <div>
+        <div class="chat-header-title">AI Form Assistant</div>
+        <div class="chat-header-sub">Type anything — I'll detect the field!</div>
+      </div>
+    </div>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-bubble bot">
+      👋 Hi! Just type and I'll auto-fill the form!<br><br>
+      <span class="field-tag tag-id">ID</span> e.g. <b>01</b>, <b>056</b><br>
+      <span class="field-tag tag-name">Name</span> e.g. <b>Rahul Sharma</b><br>
+      <span class="field-tag tag-standard">Standard</span> e.g. <b>10th</b>, <b>12th</b><br>
+      <span class="field-tag tag-marks">Marks</span> e.g. <b>85</b>, <b>67</b><br>
+      <span class="field-tag tag-desc">Description</span> e.g. <b>very good in studies</b>
+    </div>
+  </div>
+
+  <div class="chat-input-area">
+    <input type="text" class="chat-input" id="chatInput" placeholder="Type here..." onkeydown="if(event.key==='Enter') sendChat()"/>
+    <button class="chat-send" onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<script>
+  // ---- Toggle chat ----
+  function toggleChat() {
+    const panel = document.getElementById('chatPanel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+      setTimeout(() => document.getElementById('chatInput').focus(), 300);
+    }
+  }
+
+  // ---- Detect field from input ----
+  function detectField(text) {
+    text = text.trim();
+
+    if (/^0\d+$/.test(text))
+      return { field: 'id', label: 'ID', tagClass: 'tag-id', inputId: 'add_id' };
+
+    if (/^\d+(th|st|nd|rd)$/i.test(text))
+      return { field: 'standard', label: 'Standard', tagClass: 'tag-standard', inputId: 'add_standard' };
+
+    if (/^[1-9]\d{0,2}$/.test(text) && parseInt(text) <= 100)
+      return { field: 'marks', label: 'Marks', tagClass: 'tag-marks', inputId: 'add_marks' };
+
+    const words = text.split(/\s+/);
+    if (words.length >= 2 && words.length <= 3 && /^[a-zA-Z\s]+$/.test(text))
+      return { field: 'name', label: 'Name', tagClass: 'tag-name', inputId: 'add_name' };
+
+    if (words.length > 3 || (words.length >= 2 && /\d/.test(text)))
+      return { field: 'description', label: 'Description', tagClass: 'tag-desc', inputId: 'add_description' };
+
+    return null;
+  }
+
+  // ---- State ----
+  let filledFields = 0;
+  const totalFields = 5;
+  let waitingConfirm = false;
+
+  const FIELDS = ['add_id', 'add_name', 'add_standard', 'add_marks', 'add_description'];
+
+  function countFilledFields() {
+    return FIELDS.filter(id => {
+      const el = document.getElementById(id);
+      return el && el.value.trim() !== '';
+    }).length;
+  }
+
+  // ---- Send chat ----
+  function sendChat() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    // If waiting for yes/no confirmation
+    if (waitingConfirm) {
+      addBubble(text, 'user');
+      input.value = '';
+      const answer = text.toLowerCase();
+      if (answer === 'yes' || answer === 'y' || answer === 'haan' || answer === 'ha') {
+        // Click the add student button
+        addBubble('🚀 Adding student...', 'bot');
+        setTimeout(() => {
+          addStudent(); // call the existing addStudent function
+          resetChat();
+        }, 600);
+      } else {
+        addBubble('❌ Cancelled! Chat cleared for next student.', 'bot');
+        setTimeout(() => resetChat(), 1000);
+      }
+      return;
+    }
+
+    addBubble(text, 'user');
+    input.value = '';
+
+    const result = detectField(text);
+
+    if (result) {
+      const el = document.getElementById(result.inputId);
+      if (el) {
+        el.value = text;
+        if (result.inputId === 'add_marks') updateMarksBadge('add_marks', 'add_marks_badge');
+
+        // Green glow on field
+        el.style.borderColor = 'var(--accent3)';
+        el.style.boxShadow = '0 0 0 3px rgba(67,233,123,0.2)';
+        setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1500);
+
+        addBubble(`✅ Filled <span class="field-tag ${result.tagClass}">${result.label}</span> → <b>${text}</b>`, 'success');
+
+        // Check if all 5 fields are now filled
+        const filled = countFilledFields();
+        updateFabBadge(filled);
+
+        if (filled >= totalFields) {
+          waitingConfirm = true;
+          setTimeout(() => {
+            addBubble('🎉 All fields are filled!<br><br>Should I <b>add this student</b>? Type <b>yes</b> or <b>no</b>', 'bot');
+            addYesNoButtons();
+          }, 400);
+        }
+      }
+    } else {
+      addBubble(`🤔 Couldn't detect the field for "<b>${text}</b>". Try again!`, 'bot');
+    }
+
+    scrollMessages();
+  }
+
+  // ---- Yes/No buttons ----
+  function addYesNoButtons() {
+    const msgs = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.id = 'confirmBtns';
+    div.style.cssText = 'display:flex;gap:8px;margin-top:4px;';
+    div.innerHTML = `
+      <button onclick="confirmAdd('yes')" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--accent3);background:rgba(67,233,123,0.1);color:var(--accent3);font-weight:600;cursor:pointer;font-size:13px;">✅ Yes, Add</button>
+      <button onclick="confirmAdd('no')" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--accent2);background:rgba(255,101,132,0.1);color:var(--accent2);font-weight:600;cursor:pointer;font-size:13px;">❌ No, Cancel</button>
+    `;
+    msgs.appendChild(div);
+    scrollMessages();
+  }
+
+  function confirmAdd(answer) {
+    // Remove buttons
+    const btns = document.getElementById('confirmBtns');
+    if (btns) btns.remove();
+
+    if (answer === 'yes') {
+      addBubble('yes', 'user');
+      addBubble('🚀 Adding student...', 'bot');
+      setTimeout(() => {
+        addStudent();
+        resetChat();
+      }, 600);
+    } else {
+      addBubble('no', 'user');
+      addBubble('❌ Cancelled! Chat cleared for next student.', 'bot');
+      setTimeout(() => resetChat(), 1000);
+    }
+    waitingConfirm = false;
+  }
+
+  // ---- Reset chat after add ----
+  function resetChat() {
+    setTimeout(() => {
+      const msgs = document.getElementById('chatMessages');
+      msgs.innerHTML = `
+        <div class="chat-bubble bot">
+          ✨ Ready for next student!<br><br>
+          <span class="field-tag tag-id">ID</span> e.g. <b>01</b>, <b>056</b><br>
+          <span class="field-tag tag-name">Name</span> e.g. <b>Rahul Sharma</b><br>
+          <span class="field-tag tag-standard">Standard</span> e.g. <b>10th</b>, <b>12th</b><br>
+          <span class="field-tag tag-marks">Marks</span> e.g. <b>85</b>, <b>67</b><br>
+          <span class="field-tag tag-desc">Description</span> e.g. <b>very good in studies</b>
+        </div>`;
+      filledFields = 0;
+      waitingConfirm = false;
+      updateFabBadge(0);
+    }, 1200);
+  }
+
+  function addBubble(html, type) {
+    const msgs = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = `chat-bubble ${type}`;
+    div.innerHTML = html;
+    msgs.appendChild(div);
+    scrollMessages();
+  }
+
+  function scrollMessages() {
+    const msgs = document.getElementById('chatMessages');
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function updateFabBadge(count) {
+    const badge = document.getElementById('fabBadge');
+    if (count > 0) {
+      badge.style.display = 'flex';
+      badge.textContent = count;
+    } else {
+      badge.style.display = 'none';
+      badge.textContent = '';
+    }
+  }
+</script>
 </body>
 </html>
