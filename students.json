@@ -6,9 +6,21 @@
     "marks": 67.0
   },
   "02": {
-    "name": "Anand nishad",
-    "standard": "11",
-    "description": "smart boy",
+    "name": "abhishek gupta",
+    "standard": "12",
+    "description": "lund aadmi",
+    "marks": 43.0
+  },
+  "03": {
+    "name": "anuj nishad",
+    "standard": "09",
+    "description": "batla aadmi",
+    "marks": 63.0
+  },
+  "04": {
+    "name": "adi nishad",
+    "standard": "14",
+    "description": "very good boy",
     "marks": 88.0
   }
 }
